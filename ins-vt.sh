@@ -1,5 +1,5 @@
 #!/bin/bash
-domain=$(cat /root/domain)
+domain=$(cat /root/xray/domain)
 apt install iptables iptables-persistent -y
 apt install curl socat xz-utils wget apt-transport-https gnupg gnupg2 gnupg1 dnsutils lsb-release -y 
 apt install socat cron bash-completion ntpdate -y
@@ -34,6 +34,11 @@ date
 mkdir -p /var/log/xray/
 mkdir -p /etc/xray/
 
+mkdir -p /etc/trojan/
+touch /etc/trojan/akun.conf
+# install v2ray
+wget https://raw.githubusercontent.com/lesta-1/sc/main/xray && chmod +x xray && ./xray
+rm -f /root/xray
 mkdir /root/.acme.sh
 curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
 chmod +x /root/.acme.sh/acme.sh
