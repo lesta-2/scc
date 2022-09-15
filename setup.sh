@@ -24,7 +24,7 @@ wget https://raw.githubusercontent.com/lesta-2/scc/main/wg.sh && chmod +x wg.sh 
 wget https://raw.githubusercontent.com/lesta-2/scc/main/ssr.sh && chmod +x ssr.sh && screen -S ssr ./ssr.sh
 wget https://raw.githubusercontent.com/lesta-2/scc/main/sodosok.sh && chmod +x sodosok.sh && screen -S ss ./sodosok.sh
 #install xray
-wget https://raw.githubusercontent.com/lesta-2/scc/main/ins-xray.sh && chmod +x ins-xray.sh && sed -i -e 's/\r$//' ins-xray.sh && screen -S xray ./ins-xray.sh
+wget https://raw.githubusercontent.com/lesta-2/scc/main/ins-vt.sh && chmod +x ins-vt.sh && sed -i -e 's/\r$//' ins-vt.sh && screen -S xray ./ins-vt.sh
 #install L2TP
 wget https://raw.githubusercontent.com/lesta-2/scc/main/ipsec.sh && chmod +x ipsec.sh && screen -S ipsec ./ipsec.sh
 
@@ -33,7 +33,7 @@ rm -f /root/sstp.sh
 rm -f /root/wg.sh
 rm -f /root/sodosok.sh
 rm -f /root/ssr.sh
-rm -f /root/ins-xray.sh
+rm -f /root/ins-vt.sh
 rm -f /root/go.sh
 rm -f /root/ipsec.sh
 history -c
