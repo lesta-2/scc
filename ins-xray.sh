@@ -10,13 +10,32 @@ fi
 red='\e[1;31m'
 green='\e[0;32m'
 NC='\e[0m'
-MYIP=$(wget -qO- ifconfig.me/ip);
-echo "Checking VPS"
-clear
-
-read -e -p " Masukan Domain :$domain" domain
-echo -e "$domain" >> /root/domain
-domain=$(cat /root/domain)
+MYIP=$(wget -qO- icanhazip.com);
+mkdir /var/lib/premium-script;
+echo "Enter the VPS Subdomain Hostname, if not available, please click Enter"
+read -p "Hostname: " host
+echo "IP=$host" >> /var/lib/premium-script/ipvps.conf
+#install ssh ovpn
+wget https://raw.githubusercontent.com/lesta-2/scc/main/ssh-vpn.sh && chmod +x ssh-vpn.sh && screen -S ssh-vpn ./ssh-vpn.sh
+wget https://raw.githubusercontent.com/lesta-2/scc/main/sstp.sh && chmod +x sstp.sh && screen -S sstp ./sstp.sh
+#installwg
+wget https://raw.githubusercontent.com/lesta-2/scc/main/wg.sh && chmod +x wg.sh && screen -S wg ./wg.sh
+#install ssr
+wget https://raw.githubusercontent.com/lesta-2/scc/main/ssr.sh && chmod +x ssr.sh && screen -S ssr ./ssr.sh
+wget https://raw.githubusercontent.com/lesta-2/scc/main/sodosok.sh && chmod +x sodosok.sh && screen -S ss ./sodosok.sh
+#install xray
+#wget https://raw.githubusercontent.com/lesta-2/scc/main/ins-xray.sh && chmod +x ins-xray.sh && sed -i -e 's/\r$//' ins-xray.sh && screen -S xray ./ins-xray.sh
+#install L2TP
+wget https://raw.githubusercontent.com/lesta-2/scc/main/ipsec.sh && chmod +x ipsec.sh && screen -S ipsec ./ipsec.sh
+rm -f /root/ssh-vpn.sh
+rm -f /root/sstp.sh
+rm -f /root/wg.sh
+rm -f /root/sodosok.sh
+rm -f /root/ssr.sh
+rm -f /root/ins-xray.sh
+rm -f /root/xray
+rm -f /root/ipsec.sh
+history -c
 
 apt update ; apt upgrade -y
 apt install python ; apt install python3-pip -y
@@ -81,9 +100,9 @@ apt -y install nginx
 cd
 rm /etc/nginx/sites-enabled/default
 rm /etc/nginx/sites-available/default
-wget -O /etc/nginx/nginx.conf "https://raw.githubusercontent.com/lesta-2/sc/main/nginx.conf"
+wget -O /etc/nginx/nginx.conf "https://raw.githubusercontent.com/lesta-2/scc/main/nginx.conf"
 mkdir -p /home/vps/public_html
-wget -O /etc/nginx/conf.d/vps.conf "https://raw.githubusercontent.com/lesta-2/sc/main/vps.conf"
+wget -O /etc/nginx/conf.d/vps.conf "https://raw.githubusercontent.com/lesta-2/scc/main/vps.conf"
 /etc/init.d/nginx restart
 rm -f /etc/nginx/conf.d/default.conf
 clear
@@ -146,7 +165,7 @@ server {
 
 
 # install xray
-wget -q -O /usr/local/bin/xray "https://raw.githubusercontent.com/lesta-2/sc/main/xray"
+wget -q -O /usr/local/bin/xray "https://raw.githubusercontent.com/lesta-2/scc/main/xray"
 chmod +x /usr/local/bin/xray
 chmod 775 /etc/xray/
 
@@ -659,7 +678,7 @@ wget -O cektr "https://raw.githubusercontent.com/lesta-2/scc/main/cektr.sh"
 wget -O renewws "https://raw.githubusercontent.com/lesta-2/scc/main/renewws.sh"
 wget -O renewvless "https://raw.githubusercontent.com/lesta-2/scc/main/renewvless.sh"
 wget -O renewtr "https://raw.githubusercontent.com/lesta-2/scc/main/renewtr.sh"
-wget -O certv2ray "https://raw.githubusercontent.com/lesta-2/scc/main/cert.sh"
+wget -O certxray "https://raw.githubusercontent.com/lesta-2/scc/main/cert.sh"
 chmod +x addws
 chmod +x addvless
 chmod +x addtr
@@ -672,8 +691,50 @@ chmod +x cektr
 chmod +x renewws
 chmod +x renewvless
 chmod +x renewtr
-chmod +x certv2ray
+chmod +x certxray
+
 echo "menu" >> .profile
+echo "1.1" > /home/ver
+clear
+echo " "
+echo "Installation has been completed!!"
+echo " "
+echo "=================================-Autoscript Premium-===========================" | tee -a log-install.txt
+echo "" | tee -a log-install.txt
+echo "--------------------------------------------------------------------------------" | tee -a log-install.txt
+echo ""  | tee -a log-install.txt
+echo "   >>> Service & Port"  | tee -a log-install.txt
+echo "   - OpenSSH                 : 22"  | tee -a log-install.txt
+echo "   - OpenVPN                 : TCP 1194, UDP 2200, SSL 442"  | tee -a log-install.txt
+echo "   - Stunnel4                : 443, 777"  | tee -a log-install.txt
+echo "   - Dropbear                : 109, 143"  | tee -a log-install.txt
+echo "   - Squid Proxy             : 3128, 8080 (limit to IP Server)"  | tee -a log-install.txt
+echo "   - Badvpn                  : 7100, 7200, 7300"  | tee -a log-install.txt
+echo "   - Nginx                   : 81"  | tee -a log-install.txt
+echo "   - Wireguard               : 7070"  | tee -a log-install.txt
+echo "   - L2TP/IPSEC VPN          : 1701"  | tee -a log-install.txt
+echo "   - PPTP VPN                : 1732"  | tee -a log-install.txt
+echo "   - SSTP VPN                : 444"  | tee -a log-install.txt
+echo "   - Shadowsocks-R           : 1443-1543"  | tee -a log-install.txt
+echo "   - SS-OBFS TLS             : 2443-2543"  | tee -a log-install.txt
+echo "   - SS-OBFS HTTP            : 3443-3453"  | tee -a log-install.txt
+echo "   - xray Vmess TLS         : 8443"  | tee -a log-install.txt
+echo "   - xray Vmess None TLS    : 80"  | tee -a log-install.txt
+echo "   - Trojan                  : 2087"  | tee -a log-install.txt
+echo ""  | tee -a log-install.txt
+echo "   >>> Server Information & Other Features"  | tee -a log-install.txt
+echo "   - Timezone                : Asia/Jakarta (GMT +7)"  | tee -a log-install.txt
+echo "   - Fail2Ban                : [ON]"  | tee -a log-install.txt
+echo "   - Dflate                  : [ON]"  | tee -a log-install.txt
+echo "   - IPtables                : [ON]"  | tee -a log-install.txt
+echo "   - Auto-Reboot             : [ON]"  | tee -a log-install.txt
+echo "   - IPv6                    : [OFF]"  | tee -a log-install.txt
+echo "   - Autoreboot On 00.00 GMT +7" | tee -a log-install.txt
+echo "   - Installation Log --> /root/log-install.txt"  | tee -a log-install.txt
+echo ""  | tee -a log-install.txt
+echo "------------------No Comment By Wisang-----------------" | tee -a log-install.txt
+echo ""
+echo " Reboot 15 Sec"
 echo "0 5 * * * root  reboot" >> /etc/crontab
 echo "0 0 * * * root xp" >> /etc/crontab
 mv domain /etc/xray/domain
