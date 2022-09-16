@@ -10,32 +10,9 @@ fi
 red='\e[1;31m'
 green='\e[0;32m'
 NC='\e[0m'
-MYIP=$(wget -qO- icanhazip.com);
-mkdir /var/lib/premium-script;
-echo "Enter the VPS Subdomain Hostname, if not available, please click Enter"
-read -p "Hostname: " host
-echo "IP=$host" >> /var/lib/premium-script/ipvps.conf
-#install ssh ovpn
-wget https://raw.githubusercontent.com/lesta-2/scc/main/ssh-vpn.sh && chmod +x ssh-vpn.sh && screen -S ssh-vpn ./ssh-vpn.sh
-wget https://raw.githubusercontent.com/lesta-2/scc/main/sstp.sh && chmod +x sstp.sh && screen -S sstp ./sstp.sh
-#installwg
-wget https://raw.githubusercontent.com/lesta-2/scc/main/wg.sh && chmod +x wg.sh && screen -S wg ./wg.sh
-#install ssr
-wget https://raw.githubusercontent.com/lesta-2/scc/main/ssr.sh && chmod +x ssr.sh && screen -S ssr ./ssr.sh
-wget https://raw.githubusercontent.com/lesta-2/scc/main/sodosok.sh && chmod +x sodosok.sh && screen -S ss ./sodosok.sh
-#install xray
-#wget https://raw.githubusercontent.com/lesta-2/scc/main/ins-xray.sh && chmod +x ins-xray.sh && sed -i -e 's/\r$//' ins-xray.sh && screen -S xray ./ins-xray.sh
-#install L2TP
-wget https://raw.githubusercontent.com/lesta-2/scc/main/ipsec.sh && chmod +x ipsec.sh && screen -S ipsec ./ipsec.sh
-rm -f /root/ssh-vpn.sh
-rm -f /root/sstp.sh
-rm -f /root/wg.sh
-rm -f /root/sodosok.sh
-rm -f /root/ssr.sh
-rm -f /root/ins-xray.sh
-rm -f /root/xray
-rm -f /root/ipsec.sh
-history -c
+MYIP=$(wget -qO- ifconfig.me/ip);
+echo "Checking VPS"
+clear
 
 apt update ; apt upgrade -y
 apt install python ; apt install python3-pip -y
@@ -62,8 +39,6 @@ mkdir -p /etc/xray/
 mkdir /root/.acme.sh
 curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
 chmod +x /root/.acme.sh/acme.sh
-cd /root/.acme.sh
-bash acme.sh --register-account -m admin@daponwisang.my.id
 /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
 ~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
 service squid start
@@ -85,8 +60,8 @@ if [[ $OS == 'ubuntu' ]]; then
         systemctl enable nginx
 elif [[ $OS == 'debian' ]]; then
 		sudo apt install gnupg2 ca-certificates lsb-release -y
-        echo "deb http://nginx.org/packages/mainline/debian $(lsb_release -cs) nginx" | sudo tee /etc/apt/sources.list.d/nginx.list
-        echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" | sudo tee /etc/apt/preferences.d/99nginx
+        echo "deb http://nginx.org/packages/mainline/debian $(lsb_release -cs) nginx" | sudo tee /etc/apt/sources.list.d/nginx.list 
+        echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" | sudo tee /etc/apt/preferences.d/99nginx 
         curl -o /tmp/nginx_signing.key https://nginx.org/keys/nginx_signing.key
         # gpg --dry-run --quiet --import --import-options import-show /tmp/nginx_signing.key
         sudo mv /tmp/nginx_signing.key /etc/apt/trusted.gpg.d/nginx_signing.asc
@@ -95,25 +70,16 @@ elif [[ $OS == 'debian' ]]; then
         systemctl daemon-reload
         systemctl enable nginx
 fi
-# install webserver
-apt -y install nginx
-cd
-rm /etc/nginx/sites-enabled/default
-rm /etc/nginx/sites-available/default
-wget -O /etc/nginx/nginx.conf "https://raw.githubusercontent.com/lesta-2/scc/main/nginx.conf"
-mkdir -p /home/vps/public_html
-wget -O /etc/nginx/conf.d/vps.conf "https://raw.githubusercontent.com/lesta-2/scc/main/vps.conf"
-/etc/init.d/nginx restart
 rm -f /etc/nginx/conf.d/default.conf
 clear
 echo "
 server {
-    listen 80 ;443 ;
-    listen [::]:80 ;443 ;
+    listen 80 ;443
+    listen [::]:80 ;443
     access_log /var/log/nginx/vps-access.log;
     error_log /var/log/nginx/vps-error.log error;
     
-    location /xray
+    location /vmess
         {
         proxy_redirect off;
         proxy_pass http://127.0.0.1:31301;
@@ -134,22 +100,13 @@ server {
     location /
         {
         proxy_redirect off;
-        proxy_pass http://127.0.0.1:2082;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade "'"$http_upgrade"'";
-        proxy_set_header Connection '"'upgrade'"';
-        proxy_set_header Host "'"$http_host"'";
-	    }
-    location /
-        {
-        proxy_redirect off;
         proxy_pass http://127.0.0.1:2086;
         proxy_http_version 1.1;
         proxy_set_header Upgrade "'"$http_upgrade"'";
         proxy_set_header Connection '"'upgrade'"';
         proxy_set_header Host "'"$http_host"'";
 	    }
-	location /vlgRPC {
+   location /vlgRPC {
         client_max_body_size 0;
         keepalive_time 1071906480m;
         keepalive_requests 4294967296;
@@ -165,12 +122,12 @@ server {
 
 
 # install xray
-wget -q -O /usr/local/bin/xray "https://raw.githubusercontent.com/lesta-2/scc/main/xray"
+wget -q -O /usr/local/bin/xray "https://raw.githubusercontent.com/lesta-2/xray/main/xray"
 chmod +x /usr/local/bin/xray
 chmod 775 /etc/xray/
 
 uuid=$(cat /proc/sys/kernel/random/uuid)
-cat> /etc/xray/config.json << END
+cat> /etc/xray/vmess.json << END
 {
   "log": {
     "access": "/var/log/xray/access.log",
@@ -180,7 +137,7 @@ cat> /etc/xray/config.json << END
   "inbounds": [
     {
       "port": 31301,
-      "protocol": "xray",
+      "protocol": "vmess",
       "settings": {
         "clients": [
           {
@@ -193,7 +150,7 @@ cat> /etc/xray/config.json << END
       "streamSettings": {
         "network": "ws",
         "wsSettings": {
-          "path": "/xray",
+          "path": "/vmess",
           "headers": {
             "Host": ""
           }
@@ -369,16 +326,12 @@ cat> /etc/xray/trojan.json <<END
             "dest": 31304
           },
           {
-            "path":"/xray",
+            "path":"/vmess",
             "dest": 31301
           },
           {
             "path":"/vless",
             "dest": 31302
-          },
-          {
-            "path":"",
-            "dest": 20822
           },
           {
             "path":"",
@@ -620,8 +573,8 @@ cat> /etc/xray/trojanws.json << END
 END
 cat > /etc/systemd/system/xray@.service << EOF
 [Unit]
-Description=xray Service ( %i )
-Documentation=https://github.com/XTLS/xray-core
+Description=XRay Service ( %i )
+Documentation=https://github.com/XTLS/Xray-core
 After=network.target nss-lookup.target
 [Service]
 User=root
@@ -636,19 +589,13 @@ WantedBy=multi-user.target
 EOF
 cd
 iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 443 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 2082 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 2086 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 31301 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 31302 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 31306 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 31303 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m udp -p udp --dport 443 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m udp -p udp --dport 2082 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m udp -p udp --dport 2086 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m udp -p udp --dport 31301 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m udp -p udp --dport 31302 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m udp -p udp --dport 31303 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m udp -p udp --dport 31306 -j ACCEPT
 iptables-save > /etc/iptables.up.rules
 iptables-restore -t < /etc/iptables.up.rules
 netfilter-persistent save
@@ -660,81 +607,12 @@ systemctl restart xray@trojan
 systemctl enable xray@trojan
 systemctl restart xray@trojanws
 systemctl enable xray@trojanws
-systemctl restart xray@xray
-systemctl enable xray@xray
+systemctl restart xray@vmess
+systemctl enable xray@vmess
 systemctl restart xray@vlgrpc
 systemctl enable xray@vlgrpc
 systemctl restart nginx
-cd /usr/bin
-wget -O addws "https://raw.githubusercontent.com/lesta-2/scc/main/addws.sh"
-wget -O addvless "https://raw.githubusercontent.com/lesta-2/scc/main/addvless.sh"
-wget -O addtr "https://raw.githubusercontent.com/lesta-2/scc/main/addtr.sh"
-wget -O delws "https://raw.githubusercontent.com/lesta-2/scc/main/delws.sh"
-wget -O delvless "https://raw.githubusercontent.com/lesta-2/scc/main/delvless.sh"
-wget -O deltr "https://raw.githubusercontent.com/lesta-2/scc/main/deltr.sh"
-wget -O cekws "https://raw.githubusercontent.com/lesta-2/scc/main/cekws.sh"
-wget -O cekvless "https://raw.githubusercontent.com/lesta-2/scc/main/cekvless.sh"
-wget -O cektr "https://raw.githubusercontent.com/lesta-2/scc/main/cektr.sh"
-wget -O renewws "https://raw.githubusercontent.com/lesta-2/scc/main/renewws.sh"
-wget -O renewvless "https://raw.githubusercontent.com/lesta-2/scc/main/renewvless.sh"
-wget -O renewtr "https://raw.githubusercontent.com/lesta-2/scc/main/renewtr.sh"
-wget -O certxray "https://raw.githubusercontent.com/lesta-2/scc/main/cert.sh"
-chmod +x addws
-chmod +x addvless
-chmod +x addtr
-chmod +x delws
-chmod +x delvless
-chmod +x deltr
-chmod +x cekws
-chmod +x cekvless
-chmod +x cektr
-chmod +x renewws
-chmod +x renewvless
-chmod +x renewtr
-chmod +x certxray
-
 echo "menu" >> .profile
-echo "1.1" > /home/ver
-clear
-echo " "
-echo "Installation has been completed!!"
-echo " "
-echo "=================================-Autoscript Premium-===========================" | tee -a log-install.txt
-echo "" | tee -a log-install.txt
-echo "--------------------------------------------------------------------------------" | tee -a log-install.txt
-echo ""  | tee -a log-install.txt
-echo "   >>> Service & Port"  | tee -a log-install.txt
-echo "   - OpenSSH                 : 22"  | tee -a log-install.txt
-echo "   - OpenVPN                 : TCP 1194, UDP 2200, SSL 442"  | tee -a log-install.txt
-echo "   - Stunnel4                : 443, 777"  | tee -a log-install.txt
-echo "   - Dropbear                : 109, 143"  | tee -a log-install.txt
-echo "   - Squid Proxy             : 3128, 8080 (limit to IP Server)"  | tee -a log-install.txt
-echo "   - Badvpn                  : 7100, 7200, 7300"  | tee -a log-install.txt
-echo "   - Nginx                   : 81"  | tee -a log-install.txt
-echo "   - Wireguard               : 7070"  | tee -a log-install.txt
-echo "   - L2TP/IPSEC VPN          : 1701"  | tee -a log-install.txt
-echo "   - PPTP VPN                : 1732"  | tee -a log-install.txt
-echo "   - SSTP VPN                : 444"  | tee -a log-install.txt
-echo "   - Shadowsocks-R           : 1443-1543"  | tee -a log-install.txt
-echo "   - SS-OBFS TLS             : 2443-2543"  | tee -a log-install.txt
-echo "   - SS-OBFS HTTP            : 3443-3453"  | tee -a log-install.txt
-echo "   - xray Vmess TLS         : 8443"  | tee -a log-install.txt
-echo "   - xray Vmess None TLS    : 80"  | tee -a log-install.txt
-echo "   - Trojan                  : 2087"  | tee -a log-install.txt
-echo ""  | tee -a log-install.txt
-echo "   >>> Server Information & Other Features"  | tee -a log-install.txt
-echo "   - Timezone                : Asia/Jakarta (GMT +7)"  | tee -a log-install.txt
-echo "   - Fail2Ban                : [ON]"  | tee -a log-install.txt
-echo "   - Dflate                  : [ON]"  | tee -a log-install.txt
-echo "   - IPtables                : [ON]"  | tee -a log-install.txt
-echo "   - Auto-Reboot             : [ON]"  | tee -a log-install.txt
-echo "   - IPv6                    : [OFF]"  | tee -a log-install.txt
-echo "   - Autoreboot On 00.00 GMT +7" | tee -a log-install.txt
-echo "   - Installation Log --> /root/log-install.txt"  | tee -a log-install.txt
-echo ""  | tee -a log-install.txt
-echo "------------------No Comment By Wisang-----------------" | tee -a log-install.txt
-echo ""
-echo " Reboot 15 Sec"
 echo "0 5 * * * root  reboot" >> /etc/crontab
 echo "0 0 * * * root xp" >> /etc/crontab
 mv domain /etc/xray/domain
