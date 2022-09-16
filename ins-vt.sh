@@ -1,17 +1,18 @@
 #!/bin/bash
-domain=$(cat /root/xray/domain)
-apt install iptables iptables-persistent -y
-apt install curl socat xz-utils wget apt-transport-https gnupg gnupg2 gnupg1 dnsutils lsb-release -y 
-apt install socat cron bash-completion ntpdate -y
-ntpdate pool.ntp.org
-apt -y install chrony
-timedatectl set-ntp true
-systemctl enable chronyd && systemctl restart chronyd
-systemctl enable chrony && systemctl restart chrony
-timedatectl set-timezone Asia/Jakarta
-chronyc sourcestats -v
-chronyc tracking -v
-date
+if [ "${EUID}" -ne 0 ]; then
+		echo "You need to run this script as root"
+		exit 1
+fi
+if [ "$(systemd-detect-virt)" == "openvz" ]; then
+		echo "OpenVZ is not supported"
+		exit 1
+fi
+red='\e[1;31m'
+green='\e[0;32m'
+NC='\e[0m'
+MYIP=$(wget -qO- ifconfig.me/ip);
+echo "Checking VPS"
+clear
 
 apt update ; apt upgrade -y
 apt install python ; apt install python3-pip -y
@@ -34,16 +35,10 @@ date
 mkdir -p /var/log/xray/
 mkdir -p /etc/xray/
 
-mkdir -p /etc/trojan/
-touch /etc/trojan/akun.conf
-# install v2ray
-wget https://raw.githubusercontent.com/lesta-1/sc/main/xray && chmod +x xray && ./xray
-rm -f /root/xray
+
 mkdir /root/.acme.sh
 curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
 chmod +x /root/.acme.sh/acme.sh
-cd /root/.acme.sh
-bash acme.sh --register-account -m admin@daponwisang.my.id
 /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
 ~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
 service squid start
@@ -65,8 +60,8 @@ if [[ $OS == 'ubuntu' ]]; then
         systemctl enable nginx
 elif [[ $OS == 'debian' ]]; then
 		sudo apt install gnupg2 ca-certificates lsb-release -y
-        echo "deb http://nginx.org/packages/mainline/debian $(lsb_release -cs) nginx" | sudo tee /etc/apt/sources.list.d/nginx.list
-        echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" | sudo tee /etc/apt/preferences.d/99nginx
+        echo "deb http://nginx.org/packages/mainline/debian $(lsb_release -cs) nginx" | sudo tee /etc/apt/sources.list.d/nginx.list 
+        echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" | sudo tee /etc/apt/preferences.d/99nginx 
         curl -o /tmp/nginx_signing.key https://nginx.org/keys/nginx_signing.key
         # gpg --dry-run --quiet --import --import-options import-show /tmp/nginx_signing.key
         sudo mv /tmp/nginx_signing.key /etc/apt/trusted.gpg.d/nginx_signing.asc
@@ -75,25 +70,16 @@ elif [[ $OS == 'debian' ]]; then
         systemctl daemon-reload
         systemctl enable nginx
 fi
-# install webserver
-apt -y install nginx
-cd
-rm /etc/nginx/sites-enabled/default
-rm /etc/nginx/sites-available/default
-wget -O /etc/nginx/nginx.conf "https://raw.githubusercontent.com/lesta-2/scc/main/nginx.conf"
-mkdir -p /home/vps/public_html
-wget -O /etc/nginx/conf.d/vps.conf "https://raw.githubusercontent.com/lesta-2/scc/main/vps.conf"
-/etc/init.d/nginx restart
 rm -f /etc/nginx/conf.d/default.conf
 clear
 echo "
 server {
-    listen 80 ;443 ;
-    listen [::]:80 ;443 ;
+    listen 80 ;443
+    listen [::]:80 ;443
     access_log /var/log/nginx/vps-access.log;
     error_log /var/log/nginx/vps-error.log error;
     
-    location /xray
+    location /vmess
         {
         proxy_redirect off;
         proxy_pass http://127.0.0.1:31301;
@@ -114,22 +100,13 @@ server {
     location /
         {
         proxy_redirect off;
-        proxy_pass http://127.0.0.1:2082;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade "'"$http_upgrade"'";
-        proxy_set_header Connection '"'upgrade'"';
-        proxy_set_header Host "'"$http_host"'";
-	    }
-    location /
-        {
-        proxy_redirect off;
         proxy_pass http://127.0.0.1:2086;
         proxy_http_version 1.1;
         proxy_set_header Upgrade "'"$http_upgrade"'";
         proxy_set_header Connection '"'upgrade'"';
         proxy_set_header Host "'"$http_host"'";
 	    }
-	location /vlgRPC {
+   location /vlgRPC {
         client_max_body_size 0;
         keepalive_time 1071906480m;
         keepalive_requests 4294967296;
@@ -145,7 +122,7 @@ server {
 
 
 # install xray
-wget -q -O /usr/local/bin/xray "https://raw.githubusercontent.com/lesta-2/scc/main/xray"
+wget -q -O /usr/local/bin/xray "https://raw.githubusercontent.com/lesta-2/xray/main/xray"
 chmod +x /usr/local/bin/xray
 chmod 775 /etc/xray/
 
@@ -160,7 +137,7 @@ cat> /etc/xray/vmess.json << END
   "inbounds": [
     {
       "port": 31301,
-      "protocol": "xray",
+      "protocol": "vmess",
       "settings": {
         "clients": [
           {
@@ -173,7 +150,7 @@ cat> /etc/xray/vmess.json << END
       "streamSettings": {
         "network": "ws",
         "wsSettings": {
-          "path": "/xray",
+          "path": "/vmess",
           "headers": {
             "Host": ""
           }
@@ -349,16 +326,12 @@ cat> /etc/xray/trojan.json <<END
             "dest": 31304
           },
           {
-            "path":"/xray",
+            "path":"/vmess",
             "dest": 31301
           },
           {
             "path":"/vless",
             "dest": 31302
-          },
-          {
-            "path":"",
-            "dest": 20822
           },
           {
             "path":"",
@@ -600,8 +573,8 @@ cat> /etc/xray/trojanws.json << END
 END
 cat > /etc/systemd/system/xray@.service << EOF
 [Unit]
-Description=xray Service ( %i )
-Documentation=https://github.com/XTLS/xray-core
+Description=XRay Service ( %i )
+Documentation=https://github.com/XTLS/Xray-core
 After=network.target nss-lookup.target
 [Service]
 User=root
@@ -616,19 +589,13 @@ WantedBy=multi-user.target
 EOF
 cd
 iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 443 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 2082 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 2086 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 31301 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 31302 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 31306 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 31303 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m udp -p udp --dport 443 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m udp -p udp --dport 2082 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m udp -p udp --dport 2086 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m udp -p udp --dport 31301 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m udp -p udp --dport 31302 -j ACCEPT
 iptables -I INPUT -m state --state NEW -m udp -p udp --dport 31303 -j ACCEPT
-iptables -I INPUT -m state --state NEW -m udp -p udp --dport 31306 -j ACCEPT
 iptables-save > /etc/iptables.up.rules
 iptables-restore -t < /etc/iptables.up.rules
 netfilter-persistent save
@@ -640,38 +607,13 @@ systemctl restart xray@trojan
 systemctl enable xray@trojan
 systemctl restart xray@trojanws
 systemctl enable xray@trojanws
-systemctl restart xray@xray
-systemctl enable xray@xray
+systemctl restart xray@vmess
+systemctl enable xray@vmess
 systemctl restart xray@vlgrpc
 systemctl enable xray@vlgrpc
 systemctl restart nginx
-cd /usr/bin
-wget -O addws "https://raw.githubusercontent.com/lesta-2/scc/main/addws.sh"
-wget -O addvless "https://raw.githubusercontent.com/lesta-2/scc/main/addvless.sh"
-wget -O addtr "https://raw.githubusercontent.com/lesta-2/scc/main/addtr.sh"
-wget -O delws "https://raw.githubusercontent.com/lesta-2/scc/main/delws.sh"
-wget -O delvless "https://raw.githubusercontent.com/lesta-2/scc/main/delvless.sh"
-wget -O deltr "https://raw.githubusercontent.com/lesta-2/scc/main/deltr.sh"
-wget -O cekws "https://raw.githubusercontent.com/lesta-2/scc/main/cekws.sh"
-wget -O cekvless "https://raw.githubusercontent.com/lesta-2/scc/main/cekvless.sh"
-wget -O cektr "https://raw.githubusercontent.com/lesta-2/scc/main/cektr.sh"
-wget -O renewws "https://raw.githubusercontent.com/lesta-2/scc/main/renewws.sh"
-wget -O renewvless "https://raw.githubusercontent.com/lesta-2/scc/main/renewvless.sh"
-wget -O renewtr "https://raw.githubusercontent.com/lesta-2/scc/main/renewtr.sh"
-wget -O certv2ray "https://raw.githubusercontent.com/lesta-2/scc/main/cert.sh"
-chmod +x addws
-chmod +x addvless
-chmod +x addtr
-chmod +x delws
-chmod +x delvless
-chmod +x deltr
-chmod +x cekws
-chmod +x cekvless
-chmod +x cektr
-chmod +x renewws
-chmod +x renewvless
-chmod +x renewtr
-chmod +x certv2ray
-cd
-rm -f ins-vt.sh
-mv /root/domain /etc/xray
+echo "menu" >> .profile
+echo "0 5 * * * root  reboot" >> /etc/crontab
+echo "0 0 * * * root xp" >> /etc/crontab
+mv domain /etc/xray/domain
+reboot
